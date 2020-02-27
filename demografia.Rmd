@@ -1,0 +1,598 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+
+library(dplyr)
+```
+    
+
+```{r}
+# Se cargan los datos
+  
+data <- read.delim(file = "encuesta_calidad_vida.csv",header = T,sep = ";",encoding = "UTF-8")
+save(data,file = "DATOS_CAL_VID.RData")
+load("DATOS_CAL_VID.RData")
+
+  
+```
+
+
+# Preguntas seleccionadas
+p_15: sexo
+1	Hombre
+2	Mujer
+
+p_18: años cumplidos
+0	0 AÑOS
+1	1 AÑO
+2	2 AÑOS
+3	3 AÑOS
+4	4 AÑOS
+5	5 AÑOS
+6	6 AÑOS
+7	7 AÑOS
+8	8 AÑOS
+9	9 AÑOS
+10	10 AÑOS
+11	11 AÑOS
+12	12 AÑOS
+13	13 AÑOS
+14	14 AÑOS
+15	15 AÑOS
+16	16 AÑOS
+17	17 AÑOS
+18	18 AÑOS
+19	19 AÑOS
+20	20 AÑOS
+21	21 AÑOS
+22	22 AÑOS
+23	23 AÑOS
+24	24 AÑOS
+25	25 AÑOS
+26	26 AÑOS
+27	27 AÑOS
+28	28 AÑOS
+29	29 AÑOS
+30	30 A 34 AÑOS
+31	35 A 39 AÑOS
+32	40 A 44 AÑOS
+33	45 A 49 AÑOS
+34	50 A 54 AÑOS
+35	55 A 59 AÑOS
+36	60 A 64 AÑOS
+37	65 A 69 AÑOS
+38	70 A 74 AÑOS
+39	75 A 79 AÑOS
+40	80 Y MAS AÑOS
+
+p_20: Estado civil actual
+1	Soltero(a)
+2	Casado(a)
+3	Viudo(a)
+4	Separado o Divorciado(a)
+5	No está casado y vive en pareja hace menos de 2 años
+6	No está casado y vive en pareja hace 2 años o más
+
+p_23: De acuerdo con su cultura, pueblo o rasgos físicos, es o se reconoce como
+-98	No sabe
+1	Indígena
+2	Negro(a), mulato, afrocolombiano, afrodescendiente
+3	Mestizo
+4	Blanco
+5	Raizal -Sanandresano
+6	Rom - Gitano
+
+  
+```{r}
+variables_seleccionadas<- c("encuesta_calidad.barrio",
+                            "encuesta_calidad.p_15",
+                            "encuesta_calidad.p_18",
+                            "encuesta_calidad.p_20",
+                            "encuesta_calidad.p_23")
+```
+
+
+```{r}
+datos <- data[,variables_seleccionadas]
+Barrios <-as.matrix(summary(datos$encuesta_calidad.barrio,maxsum = 100000))
+```
+
+```{r}
+datos
+```
+
+# Clasificación por edad
+
+## Edad promedio por barrio
+
+```{r}
+
+edad_promedio <- aggregate(encuesta_calidad.p_18 ~ encuesta_calidad.barrio, data=datos, mean)
+
+names(edad_promedio)[names(edad_promedio) == "encuesta_calidad.p_18"] <- "encuesta_calidad.edad_promedio"
+
+edad_promedio
+```
+
+
+# Hombres y mujeres por barrio
+
+```{r}
+hombres <- datos %>% 
+  select(encuesta_calidad.barrio ,encuesta_calidad.p_15) %>% 
+  group_by(encuesta_calidad.barrio) %>%
+  filter(encuesta_calidad.p_15 == 1) %>%
+  count(encuesta_calidad.p_15)
+mujeres <- datos %>%
+  select(encuesta_calidad.barrio, encuesta_calidad.p_15) %>%
+  group_by(encuesta_calidad.barrio) %>%
+  filter(encuesta_calidad.p_15 == 2) %>%
+  count(encuesta_calidad.p_15)
+
+personas <- merge(x = hombres[,c(1,3)],y = mujeres[,c(1,3)] ,by = "encuesta_calidad.barrio")
+names(personas)[names(personas) == "n.x"] <- "num_hombres"
+names(personas)[names(personas) == "n.y"] <- "num_mujeres"
+personas <- merge(edad_promedio, personas, by="encuesta_calidad.barrio")
+names(personas)[names(personas) == "encuesta_calidad.edad_promedio"] <- "edad_promedio"
+personas
+```
+
+# Proporción de hombres y mujeres por barrio
+
+```{r}
+personas <- personas %>% 
+  mutate(porcentaje_hombres = num_hombres/(num_hombres + num_mujeres)) %>% 
+  mutate(porcentaje_mujeres = num_mujeres/(num_hombres + num_mujeres))
+personas <- personas[,-3]
+personas <- personas[,-3]
+personas
+```
+
+# Estado civil
+
+```{r}
+personas_ec <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_20)
+
+personas_ec1 <- personas_ec %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_20 == 1) %>% 
+  count(encuesta_calidad.p_20)
+names(personas_ec1)[names(personas_ec1) == "n"] <- "num_soltero"
+
+personas_ec2 <- personas_ec %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_20 == 2) %>% 
+  count(encuesta_calidad.p_20)
+names(personas_ec2)[names(personas_ec2) == "n"] <- "num_casado"
+
+personas_ec3 <- personas_ec %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_20 == 3) %>% 
+  count(encuesta_calidad.p_20)
+names(personas_ec3)[names(personas_ec3) == "n"] <- "num_viudo"
+
+personas_ec4 <- personas_ec %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_20 == 4) %>% 
+  count(encuesta_calidad.p_20)
+names(personas_ec4)[names(personas_ec4) == "n"] <- "num_separado"
+
+personas_ec5 <- personas_ec %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_20 == 5) %>% 
+  count(encuesta_calidad.p_20)
+names(personas_ec5)[names(personas_ec5) == "n"] <- "num_menos_2_"
+
+personas_ec6 <- personas_ec %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_20 == 6) %>% 
+  count(encuesta_calidad.p_20)
+names(personas_ec6)[names(personas_ec6) == "n"] <- "num_mas_2_"
+
+personas_ec1 <- full_join(personas_ec1, personas_ec2, by= "encuesta_calidad.barrio")
+personas_ec1 <- full_join(personas_ec1, personas_ec3, by= "encuesta_calidad.barrio")
+personas_ec1 <- full_join(personas_ec1, personas_ec4, by= "encuesta_calidad.barrio")
+personas_ec1 <- full_join(personas_ec1, personas_ec5, by= "encuesta_calidad.barrio")
+personas_ec1 <- full_join(personas_ec1, personas_ec6, by= "encuesta_calidad.barrio")
+
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-3]
+personas_ec1<-personas_ec1[,-4]
+personas_ec1<-personas_ec1[,-5]
+personas_ec1<-personas_ec1[,-6]
+personas_ec1<-personas_ec1[,-7]
+
+personas_ec1[is.na(personas_ec1)] = 0
+
+personas_ec1 <- personas_ec1 %>% 
+  mutate(total = num_soltero + num_casado + num_viudo + num_separado + num_menos_2_ + num_mas_2_) %>% 
+  mutate(prop_soltero = num_soltero/total) %>% 
+  mutate(prop_casado = num_casado/total) %>% 
+  mutate(prop_viudo = num_viudo/total) %>% 
+  mutate(prop_separado = num_separado/total) %>% 
+  mutate(prop_num_menos_2 = num_menos_2_/total) %>% 
+  mutate(prop_num_mas_2 = num_mas_2_/total)
+
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-2]
+personas_ec1<-personas_ec1[,-2]
+
+personas<-full_join(personas, personas_ec1, by= "encuesta_calidad.barrio")
+
+rm(personas_ec1)
+rm(personas_ec2)
+rm(personas_ec3)
+rm(personas_ec4)
+rm(personas_ec5)
+rm(personas_ec6)
+
+
+
+```
+
+# Proporción por rango de edad
+
+```{r}
+edades <- datos %>% 
+  count(encuesta_calidad.barrio)
+
+seleccion <- datos %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_18) %>% 
+  filter(encuesta_calidad.p_18 < 18) %>% 
+  count(encuesta_calidad.barrio)
+
+edades <- full_join(edades, seleccion, by="encuesta_calidad.barrio")
+edades <- edades %>% 
+  rename(
+    total = n.x,
+    menor_18 = n.y
+    )
+
+seleccion <- datos %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_18) %>% 
+  filter(encuesta_calidad.p_18 >= 18) %>% 
+  filter(encuesta_calidad.p_18 < 60) %>% 
+  count(encuesta_calidad.barrio)
+
+edades <- full_join(edades, seleccion, by="encuesta_calidad.barrio")
+edades <- edades %>% 
+  rename(
+    entre_18_y_59 = n
+  )
+
+seleccion <- datos %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_18) %>% 
+  filter(encuesta_calidad.p_18 >= 60) %>% 
+  count(encuesta_calidad.barrio)
+
+edades <- full_join(edades, seleccion, by="encuesta_calidad.barrio")
+edades <- edades %>% 
+  rename(mayor_igual_60 = n)
+
+edades[is.na(edades)] = 0
+
+edades <- edades %>% 
+  mutate(proporcion_menor_18 = menor_18 / total) %>% 
+  mutate(proporcion_entre_18_y_59 = entre_18_y_59 / total) %>% 
+  mutate(proporcion_mayor_igual_60 = mayor_igual_60 / total)
+personas <- full_join(personas, edades[,c(1,6,7,8)], by="encuesta_calidad.barrio")
+
+rm(edades)
+rm(seleccion)
+
+personas[is.na(personas)] = 0
+```
+
+# Etnia
+
+```{r}
+etnias <- datos %>% 
+  count(encuesta_calidad.barrio)
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == -98) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(no_sabe = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == 1) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(indigena = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == 2) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(afrodescendiente = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == 3) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(mestizo = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == 4) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(blanco = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == 5) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(raizal_sanandresano = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+seleccion <- datos %>% 
+  select(encuesta_calidad.barrio, encuesta_calidad.p_23) %>% 
+  group_by(encuesta_calidad.barrio) %>% 
+  filter(encuesta_calidad.p_23 == 6) %>% 
+  count(encuesta_calidad.barrio)
+seleccion <- seleccion %>% 
+  rename(rom_gitano = n)
+
+etnias <- full_join(etnias, seleccion, by="encuesta_calidad.barrio")
+
+etnias[is.na(etnias)] = 0
+
+etnias <- etnias %>% 
+  mutate(prop_no_sabe = no_sabe/n) %>% 
+  mutate(prop_indigena = indigena/n) %>% 
+  mutate(prop_afrodescendiente = afrodescendiente/n) %>% 
+  mutate(prop_mestizo = mestizo/n) %>% 
+  mutate(prop_blanco = blanco/n) %>% 
+  mutate(prop_raizal_sanandresano = raizal_sanandresano/n) %>% 
+  mutate(prop_rom_gitano = rom_gitano/n)
+
+personas <- merge(personas, etnias[,c(1,10,11,12,13,14,15,16)], by="encuesta_calidad.barrio")
+personas
+```
+
+```{r}
+write.csv(personas,file = "DIMENSION_DEMOGRAFIA.csv")
+
+```
+
+```{r}
+data <- read.delim(file = "C:/Users/Angel David/Desktop/dimension_demografia/DIMENSION_DEMOGRAFIA.csv",header = T,sep = ",",encoding = "UTF-8")
+save(data,file = "DATOS_DEMOGRAFIA.RData")
+load("DATOS_DEMOGRAFIA.RData")
+
+```
+
+```{r}
+(hola<-personas[,c(-1)])
+```
+
+
+```{r}
+datos <- personas
+dist <- dist(scale(datos[,-1]))
+pairs(datos)
+require(ggplot2)
+require(factoextra)
+fviz_nbclust(x = scale(datos[,-1]),FUNcluster = kmeans,method = "gap_stat")
+
+fviz_nbclust(x = scale(datos[,-1]),FUNcluster = kmeans,method = "wss")
+
+fviz_nbclust(x = scale(datos[,-1]),FUNcluster = kmeans,method = "silhouette")
+
+fviz_nbclust(x = scale(datos[,-1]),FUNcluster = kmeans,method = c("silhouette","wss","gap_stat"))
+```
+```{r}
+set.seed(1228)
+kmer <-kmeans(x =scale(datos[,-1]),nstart = 2,iter.max = 10,centers = 3)
+fviz_cluster(object = kmer,data = datos[,-1])
+```
+
+```{r}
+group <- cbind(datos,cluster=kmer$cluster)
+grupos <- data.frame(NOMBRE=group$encuesta_calidad.barrio,ClUSTER = group$cluster,COLOR = vector(length = nrow(group)))
+
+head(grupos)
+```
+
+```{r}
+require(dplyr)
+g1 <- group %>% filter(cluster==1)
+g2 <- group %>% filter(cluster==2)
+g3 <- group %>% filter(cluster==3)
+```
+
+
+```{r}
+Cal_grupos <- vector(length = 3) # vector para los 6 grupos
+
+Cal_grupos[1] <-sum(apply(g1[c(-1,-21)],2,mean))/19
+Cal_grupos[2] <-sum(apply(g2[c(-1,-21)],2,mean))/19
+Cal_grupos[3] <-sum(apply(g1[c(-1,-21)],2,mean))/19
+
+grupos_cal <- data.frame(Cal_grupos,grupo=1:3)
+grupos_cal <- grupos_cal[order(Cal_grupos),] # grupos calificados de menor a mayor
+
+grupos_cal
+```
+
+```{r}
+for(i in 1:nrow(grupos)){
+  if(grupos$ClUSTER[i]==1){grupos$COLOR[i]<- "red"}
+  if(grupos$ClUSTER[i]==2){grupos$COLOR[i]<- "green"}
+  if(grupos$ClUSTER[i]==3){grupos$COLOR[i]<- "blue"}
+}
+```
+
+```{r}
+library(rgdal)
+library(leaflet)
+Barrios_med <- readOGR(dsn = "Barrio_Vereda.shp",layer = "Barrio_Vereda")
+
+Barrios_med@data$NOMBRE<- iconv(Barrios_med@data$NOMBRE,"UTF-8","ISO_8859-1")
+Barrios_med@data$NOMBRE <- toupper(Barrios_med@data$NOMBRE)
+Barrios_med@data$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",Barrios_med@data$NOMBRE)
+```
+
+```{r}
+
+grupos$NOMBRE <- toupper(grupos$NOMBRE)
+grupos$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",grupos$NOMBRE)
+
+dim(merge(x = grupos,y = Barrios_med@data,by="NOMBRE"))
+```
+
+```{r}
+grupos$NOMBRE[grupos$NOMBRE=="ALTAVISTA CENTRAL"]<- "ALTAVISTA SECTOR CENTRAL"
+grupos$NOMBRE[grupos$NOMBRE=="AREA DE EXPANCION SAN CRISTOBAL"]<- "AREA DE EXPANSION SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="LA ESPERANZA Nº 2"]<-"LA ESPERANZA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CARLOS E RESTREPO"]<-"CARLOS E. RESTREPO"
+grupos$NOMBRE[grupos$NOMBRE=="LOS CERROS EL VERJEL"]<-"LOS CERROS EL VERGEL"
+grupos$NOMBRE[grupos$NOMBRE=="CALAZANS"]<-"CALASANZ"
+grupos$NOMBRE[grupos$NOMBRE=="AREA EXPANSION PAJARITO"]<-"AREA DE EXPANSION PAJARITO"
+grupos$NOMBRE[grupos$NOMBRE=="AREA EXPANSION SAN ANTONIO DE PRADO"]<-"AREA DE EXPANSION SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="YARUMALITO"]<-"YARUMALITO"
+grupos$NOMBRE[grupos$NOMBRE=="LOPEZ DE MESA"]<-"LOPEZ DE MESA"
+grupos$NOMBRE[grupos$NOMBRE=="VOLCANA GUAYABAL"]<-"VOLCANA GUAYABAL"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 1"]<- "ASOMADERA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 2"]<- "ASOMADERA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 3"]<- "ASOMADERA NO.3"
+grupos$NOMBRE[grupos$NOMBRE=="AURES Nº 1"]<- "AURES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="AURES Nº 2"]<- "AURES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="BARRIO CAYCEDO"]<- "BARRIO CAICEDO"
+grupos$NOMBRE[grupos$NOMBRE=="BASILIA"]<- "BRASILIA"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA Nº 1"]<- "BOMBONA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA Nº 2"]<- "BOMBONA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN CRISTOBAL"] <-"CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="CALAZANS PARTE ALTA"]<- "CALASANZ PARTE ALTA"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES Nº 1"]<- "CAMPO VALDES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES Nº 2"]<- "CAMPO VALDES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="DESCONOCIDO"]<- "CASTILLA"
+grupos$NOMBRE[grupos$NOMBRE=="DOCE DE OCTUBRE Nº 1"]<- "DOCE DE OCTUBRE NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="DOCE DE OCTUBRE Nº 2"]<- "DOCE DE OCTUBRE NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL DIAMANTE Nº 2"]<- "EL DIAMANTE NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL NOGAL - LOS ALMENDROS"]<- "EL NOGAL-LOS ALMENDROS"
+grupos$NOMBRE[grupos$NOMBRE=="PROGRESO"]<- "EL PROGRESO"
+grupos$NOMBRE[grupos$NOMBRE=="EL SOCORRO / LA GABRIELA"]<- "EL SOCORRO"
+grupos$NOMBRE[grupos$NOMBRE=="EL YOLOMBO"]<- "YOLOMBO"
+grupos$NOMBRE[grupos$NOMBRE=="JUAN XXIII - LA QUIEBRA"]<- "JUAN XXIII LA QUIEBRA"
+grupos$NOMBRE[grupos$NOMBRE=="LA ESPERANZA  Nº 2"]<- "LA ESPERANZA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LAS LOMAS Nº 1"]<- "LAS LOMAS NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LAS LOMAS Nº 2"]<- "LAS LOMAS NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LOS BALSOS Nº 1"]<- "LOS BALSOS NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LOS BALSOS Nº 2"]<- "LOS BALSOS NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="MANRIQUE CENTRAL Nº 1"]<- "MANRIQUE CENTRAL NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="MANRIQUE CENTRAL Nº 2"]<- "MANRIQUE CENTRAL NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="MARIA CANO - CARAMBOLAS"]<- "MARIA CANO-CARAMBOLAS"
+grupos$NOMBRE[grupos$NOMBRE=="MIRA FLORES"]<- "MIRAFLORES"
+grupos$NOMBRE[grupos$NOMBRE=="MOSCU Nº 1"]<- "MOSCU NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="MOSCU Nº 2"]<- "MOSCU NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="NUEVA VILLA DE ABURRA"]<- "NUEVA VILLA DEL ABURRA"
+grupos$NOMBRE[grupos$NOMBRE=="PIEDRAS BLANCAS"]<-"PIEDRAS BLANCAS - MATASANO"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JAVIER Nº 1"]<- "SAN JAVIER NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JAVIER Nº 2"]<- "SAN JAVIER NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="SANTO DOMINGO SABIO Nº 1"]<- "SANTO DOMINGO SAVIO NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SANTO DOMINGO SABIO Nº 2"]<- "SANTO DOMINGO SAVIO NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="VERSALLES Nº 1"]<- "VERSALLES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="VERSALLES Nº 2"]<- "VERSALLES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL PLAYON DE LOS COMUNEROS"]<- "PLAYON DE LOS COMUNEROS"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES  Nº 2"]<- "CAMPO VALDES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="BARRIO FACULTAD DE MINAS"]<- "FACULTAD DE MINAS"
+grupos$NOMBRE[grupos$NOMBRE=="BERMEJAL- LOS ALAMOS"]<- "BERMEJAL-LOS ALAMOS"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA  Nº 2"]<- "BOMBONA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN ANT DE PR."]<- "SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="CERRO EL VOLADOR"]<- "B. CERRO EL VOLADOR"
+grupos$NOMBRE[grupos$NOMBRE=="CORREGIMIENTO PALMITAS"]<- "PALMITAS SECTOR CENTRAL"
+grupos$NOMBRE[grupos$NOMBRE=="VILLA TINA"]<- "VILLATINA"
+grupos$NOMBRE[grupos$NOMBRE=="VILLA LILIAM"]<- "VILLA LILLIAM"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN CRISTOBAL"]<- "CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="PROGRESO  Nº 2"]<-"PROGRESO NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECER SAN ANT DE PR "]<-"SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JOSELA CIMA NO 1"]<- "SAN JOSE LA CIMA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JOSE LA CIMA NO 2"]<- "SAN JOSE LA CIMA NO.2"
+
+
+dim(merge(x = grupos,y = Barrios_med@data,by="NOMBRE"))
+
+
+```
+
+```{r}
+Barrios_med@data$COLOR<-rep("white",332)
+
+for(i in 1:332){
+  for(j in 1:299){
+    if(Barrios_med@data$NOMBRE[i]==grupos$NOMBRE[j]){
+      Barrios_med@data$COLOR[i]<-grupos$COLOR[j]}}
+  }
+
+
+Barrios_med@data$NOMBRE
+Barrios_med1 <- readOGR(dsn = "Barrio_Vereda.shp",layer = "Barrio_Vereda")
+
+Barrios_med@data$NOMBRE<- iconv(Barrios_med1@data$NOMBRE,"UTF-8","ISO_8859-1")
+
+```
+
+```{r}
+library(rgdal)
+library(leaflet)
+
+
+m=leaflet(Barrios_med)
+m=addTiles(m)
+m
+
+
+m=addPolygons(m,popup=Barrios_med$NOMBRE,color = Barrios_med@data$COLOR)
+m=addTiles(m) 
+m
+```
+
+```{r}
+apply(g1[,-1], 2, mean)
+```
+
+```{r}
+apply(g2[,-1], 2, mean)
+```
+
+```{r}
+apply(g3[,-1], 2, mean)
+```
+
+

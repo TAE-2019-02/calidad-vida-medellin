@@ -1,0 +1,578 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# cargamos los datos
+datos <- read.csv("diccionario_calidad_vida.csv", sep = ";", header = T,encoding = "UTF-8")
+datos
+
+datos1 <- read.csv("encuesta_calidad_vida.csv", sep = ";", header = T,encoding = "UFT-8")
+
+summary(datos1)
+
+# ver dimensiones de la matriz
+dim(datos1)
+
+
+```
+
+
+```{r}
+# Dimension salud
+
+# Preguntas:
+# porcentaje de personas que asistio al medico general por barrio.
+# porcentaje de personas que utiliza el servicio de urgencias por barrio.
+# porcentaje de personas que estuvo hospitalizado en los ultimos dice meses.
+
+
+salud <- datos1[, c(2,200:218)]
+salud
+
+salud1 <- salud[, c(1,7,10,15,20)]
+names(salud1) <- c("barrio", "Como_calif_serv_prom_prev","califica_medico_general","Como_calif_serv_urgencias", "estado_de_salud")
+
+
+
+require(dplyr)
+
+# asistio medico general
+a.1 <- salud1 %>% group_by(barrio) %>% summarise(cuantos_cal_malo_promoc_y_prev = sum(Como_calif_serv_prom_prev==1))
+a <- salud1 %>% group_by(barrio) %>% summarise(n = n())
+a_a.1 <- merge(x = a.1, y= a, by = "barrio")
+
+
+
+# proporcion de barrios que califican malo promocion y prevencion
+p_asistio_malo_prom_prev <- data.frame(barrio=a$barrio, p_asistio_medico_general = a_a.1[,2]/a_a.1[,3])
+head(p_asistio_malo_prom_prev)
+
+
+
+# califica medico general malo 
+a.5 <- salud1 %>% group_by(barrio) %>% summarise(cuantos_cali_malo = sum(califica_medico_general== 1))
+a5 <- salud1 %>% group_by(barrio) %>% summarise(n = n())
+a_a.5 <- merge(x = a.5, y= a5, by = "barrio")
+
+# proporcion de barrios que califica medico general malo
+p_cal_med_general <- data.frame(barrio=a5$barrio, p_utiliza_ser.urgencias = a_a.5[,2]/a_a.5[,3])
+head(p_cal_med_general)
+
+
+# califica servicio de urgencias malo
+a.6 <- salud1 %>% group_by(barrio) %>% summarise(cuantos_cal_ser_ur = sum(Como_calif_serv_urgencias == 1)) 
+a6 <- salud1 %>% group_by(barrio) %>% summarise(n = n())
+a_a.6 <- merge(x = a.6, y= a6, by = "barrio")
+
+# proporcion de barrios califica malo servicio de urgencias
+p_servi_urgencias <- data.frame(barrio=a6$barrio, p_estuvo_hospit = a_a.6[,2]/a_a.6[,3])
+head(p_servi_urgencias)
+
+# estado de salud malo
+a.7 <- salud1 %>% group_by(barrio) %>% summarise(cuantos_cal_ser_ur = sum(estado_de_salud == 1)) 
+a7 <- salud1 %>% group_by(barrio) %>% summarise(n = n())
+a_a.7 <- merge(x = a.7, y= a7, by = "barrio")
+
+# proporcion de barrios califica malo servicio de urgencias
+p_est_salud <- data.frame(barrio=a7$barrio, p_estuvo_hospit = a_a.7[,2]/a_a.7[,3])
+head(p_est_salud)
+
+## creamos una base de datos con las proporciones anteriores
+
+datossalud <- cbind(p_asistio_malo_prom_prev[,1:2],p_cal_med_general[,2],p_servi_urgencias[,2],p_est_salud[,2])
+colnames(datossalud) <- c("Barrio","P_prom_prev","P_cal_med_general","P_servi_urgencias", "P_est_salud")
+datossalud
+```
+
+
+
+
+```{r}
+# Dimensión Educacion:
+
+# Preguntas:
+
+# Porcentaje de personas que estudia actualmente por barrio
+# porcentaje de personas que tiene titulo universitario por barrios
+# porcentaje de personas que se graduo de colegio publico o privado por barrio
+
+educacion <- datos1[, c(2,234,255:268,270)]
+educacion
+
+
+educacion1 <- educacion[, c(1,3,4,7)]
+colnames(educacion1) <- c("barrio","sabe_leer_escribir","actualmente_estudia", "nivel_estudio")
+
+
+
+# estudiantes por barrio
+e.1 <- educacion1 %>% group_by(barrio) %>% summarise(cuantos_actualmente_estudia = sum(sabe_leer_escribir == 2))
+e <- educacion1 %>% group_by(barrio) %>% summarise(n = n())
+e_e.1 <- merge(x = e.1, y= e, by = "barrio")
+
+# proporcion de estudiantes por barrio
+p_sabe_leer_escribir <- data.frame(barrio=e$barrio, p_actualmente_estudia = e_e.1[,2]/e_e.1[,3])
+head(p_sabe_leer_escribir)
+
+
+# titulo universitario por barrio
+e.2 <- educacion1 %>% group_by(barrio) %>% summarise(cuantos_graduados_universidad = sum(actualmente_estudia == 2))
+e_e.2 <- cbind(e.2,e[,2])
+
+# proporcion de universitarios por barrio
+p_actualmente_estudia1 <- data.frame(barrio = e$barrio, p_titulo_universitario = e_e.2[,2]/e_e.2[,3])
+p_actualmente_estudia1
+
+
+e.10 <- educacion1 %>% group_by(barrio) %>% summarise(cuantos_graduados_universidad = sum(nivel_estudio == 0))
+e_e.10 <- cbind(e.10,e[,2])
+
+# proporcion de universitarios por barrio
+p_nivel_estudio <- data.frame(barrio = e$barrio, p_titulo_universitario = e_e.10[,2]/e_e.10[,3])
+p_nivel_estudio
+
+
+
+datoseducacion <- cbind(p_sabe_leer_escribir,p_actualmente_estudia1[,2],p_nivel_estudio[,2])
+datoseducacion
+
+colnames(datoseducacion) <- c("barrio", "p_sabe_leer_escribir","p_actualmente_estudia","p_nivel_estudio")
+datoseducacion
+
+```
+
+
+
+
+```{r}
+
+# Agrupamiento de la dimension salud
+
+require(ggplot2)
+require(FactoClass)
+require(factoextra)
+
+hw_uti <- ward.cluster(dist(datossalud[,2:4]), h.clust = 1)
+plot(hw_uti)
+rect.hclust(hw_uti, k=2, border=2:10)
+
+
+# Agrupamiento usando kmeans
+cia_km <- kmeans(datossalud[,2:4], centers = 2, nstart = 10)
+fviz_cluster(cia_km, data = datossalud[,2:4])
+
+# Para escoger el numero de k
+
+fviz_nbclust(x = datossalud[,2:4],FUNcluster = kmeans, method = c("silhouette", "wss", "gap_stat"))
+fviz_nbclust(x = datossalud[,2:4],FUNcluster = kmeans, method = c("gap_stat"))
+fviz_nbclust(x = datossalud[,2:4],FUNcluster = kmeans, method = c("wss"))
+fviz_nbclust(x = datossalud[,2:4],FUNcluster = kmeans, method = c("silhouette"))
+
+# seleccionamos un valor de k = 3 ya que segun los graficos anteriores este es el mejor
+
+gp <- cbind(datossalud,cluster=cia_km$cluster)
+gp
+grupossalud <- data.frame(NOMBRE=gp$Barrio,ClUSTER = gp$cluster,COLOR = vector(length = nrow(gp)))
+# numero de barrios por cluster
+
+require(dplyr)
+
+gp1 <- gp %>% filter(cluster==1)
+gp1
+gp2 <- gp %>% filter(cluster==2)
+gp2
+
+
+for(i in 1:nrow(grupossalud)){
+ # if(grupos$ClUSTER[i]==1){grupos$COLOR[i]<- "cyan"}
+  if(grupossalud$ClUSTER[i]==1){grupossalud$COLOR[i]<- "red"}
+  if(grupossalud$ClUSTER[i]==2){grupossalud$COLOR[i]<- "green"}
+  
+  
+  # if(grupos$ClUSTER[i]==6){grupos$COLOR[i]<- "pink"}
+  
+}
+
+# calificacion
+
+calg1 <- apply(gp1[,c(2,3,4,5)], 2, mean)
+calg1
+calg2 <-apply(gp2[,c(2,3,4,5)], 2, mean)
+calg2
+
+
+
+
+
+```
+
+
+```{r}
+# Agrupamiento para la variable educación
+
+require(ggplot2)
+require(FactoClass)
+require(factoextra)
+
+hw_uti2 <- ward.cluster(dist(datoseducacion[,2:4]), h.clust = 1)
+plot(hw_uti2)
+rect.hclust(hw_uti2, k=2, border=2:10)
+
+# Agrupamiento usando kmeans educacion
+cia_km2 <- kmeans(datoseducacion[,2:4], centers = 2, nstart = 10)
+fviz_cluster(cia_km2, data = datoseducacion[,2:4])
+
+fviz_nbclust(x = datoseducacion[,2:3],FUNcluster = kmeans, method = c("silhouette", "wss", "gap_stat"))
+fviz_nbclust(x = datoseducacion[,2:3],FUNcluster = kmeans, method = c("gap_stat"))
+fviz_nbclust(x = datoseducacion[,2:3],FUNcluster = kmeans, method = c("wss"))
+fviz_nbclust(x = datoseducacion[,2:3],FUNcluster = kmeans, method = c("silhouette"))
+
+# seleccionamos un valor de k = 2
+
+# Numero de barrios por cluster
+
+grupos1 <- cbind(datoseducacion,cluster=cia_km2$cluster)
+grupos <- data.frame(NOMBRE=grupos1$barrio,ClUSTER = grupos1$cluster,COLOR = vector(length = nrow(grupos1)))
+
+library(dplyr)
+
+gp1.1 <- grupos1 %>% filter(cluster==1)
+gp1.1
+
+gp2.1 <- grupos1 %>% filter(cluster==2)
+gp2.1
+
+#gp3.1 <- grupos1 %>% filter(cluster==3)
+#gp3.1
+
+#gp4.1 <- grupos1 %>% filter(cluster==4)
+#gp4.1
+
+
+for(i in 1:nrow(grupos)){
+ # if(grupos$ClUSTER[i]==1){grupos$COLOR[i]<- "cyan"}
+  if(grupos$ClUSTER[i]==1){grupos$COLOR[i]<- "darkorchid"}
+  if(grupos$ClUSTER[i]==2){grupos$COLOR[i]<- "blue"}
+  #if(grupos$ClUSTER[i]==3){grupos$COLOR[i]<- "green"}
+  #if(grupos$ClUSTER[i]==4){grupos$COLOR[i]<- "blue"}
+  # if(grupos$ClUSTER[i]==6){grupos$COLOR[i]<- "pink"}
+  
+}
+
+calg1.1 <- apply(gp1.1[,c(2,3,4)], 2, mean)
+calg1.1
+calg2.1 <-apply(gp2.1[,c(2,3,4)], 2, mean)
+calg2.1
+
+```
+
+
+
+```{r}
+
+##############  Mapa para educacion ######################
+
+
+
+library(rgdal)
+library(leaflet)
+
+# leemos el archivo
+Barrios_med=readOGR("Barrio_Vereda.shp",layer="Barrio_Vereda")
+
+
+# arreglamos los nombres de la base ejemplo
+Barrios_med@data$NOMBRE<- iconv(Barrios_med@data$NOMBRE,"UTF-8","ISO_8859-1")
+Barrios_med@data$NOMBRE <- toupper(Barrios_med@data$NOMBRE)
+Barrios_med@data$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",Barrios_med@data$NOMBRE)
+
+# arreglo nombres de mi base de datos (educacion)
+NOMBRE=iconv(grupos1$barrio,"UTF-8","ISO_8859-1")
+print(NOMBRE)
+
+grupos <- cbind(NOMBRE, grupos[,-c(1)])
+grupos
+
+grupos$NOMBRE <- toupper(grupos$NOMBRE)
+grupos$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",grupos$NOMBRE)
+
+
+dim(merge(x = grupos,y = Barrios_med@data,by="NOMBRE"))
+
+grupos$NOMBRE[grupos$NOMBRE=="ALTAVISTA CENTRAL"]<- "ALTAVISTA SECTOR CENTRAL"
+grupos$NOMBRE[grupos$NOMBRE=="AREA DE EXPANCION SAN CRISTOBAL"]<- "AREA DE EXPANSION SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="LA ESPERANZA Nº 2"]<-"LA ESPERANZA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CARLOS E RESTREPO"]<-"CARLOS E. RESTREPO"
+grupos$NOMBRE[grupos$NOMBRE=="LOS CERROS EL VERJEL"]<-"LOS CERROS EL VERGEL"
+grupos$NOMBRE[grupos$NOMBRE=="CALAZANS"]<-"CALASANZ"
+grupos$NOMBRE[grupos$NOMBRE=="AREA EXPANSION PAJARITO"]<-"AREA DE EXPANSION PAJARITO"
+grupos$NOMBRE[grupos$NOMBRE=="AREA EXPANSION SAN ANTONIO DE PRADO"]<-"AREA DE EXPANSION SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="YARUMALITO"]<-"YARUMALITO"
+grupos$NOMBRE[grupos$NOMBRE=="LOPEZ DE MESA"]<-"LOPEZ DE MESA"
+grupos$NOMBRE[grupos$NOMBRE=="VOLCANA GUAYABAL"]<-"VOLCANA GUAYABAL"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 1"]<- "ASOMADERA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 2"]<- "ASOMADERA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 3"]<- "ASOMADERA NO.3"
+grupos$NOMBRE[grupos$NOMBRE=="AURES Nº 1"]<- "AURES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="AURES Nº 2"]<- "AURES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="BARRIO CAYCEDO"]<- "BARRIO CAICEDO"
+grupos$NOMBRE[grupos$NOMBRE=="BASILIA"]<- "BRASILIA"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA Nº 1"]<- "BOMBONA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA Nº 2"]<- "BOMBONA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN CRISTOBAL"] <-"CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="CALAZANS PARTE ALTA"]<- "CALASANZ PARTE ALTA"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES Nº 1"]<- "CAMPO VALDES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES Nº 2"]<- "CAMPO VALDES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="DESCONOCIDO"]<- "CASTILLA"
+grupos$NOMBRE[grupos$NOMBRE=="DOCE DE OCTUBRE Nº 1"]<- "DOCE DE OCTUBRE NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="DOCE DE OCTUBRE Nº 2"]<- "DOCE DE OCTUBRE NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL DIAMANTE Nº 2"]<- "EL DIAMANTE NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL NOGAL - LOS ALMENDROS"]<- "EL NOGAL-LOS ALMENDROS"
+grupos$NOMBRE[grupos$NOMBRE=="PROGRESO"]<- "EL PROGRESO"
+grupos$NOMBRE[grupos$NOMBRE=="EL SOCORRO / LA GABRIELA"]<- "EL SOCORRO"
+grupos$NOMBRE[grupos$NOMBRE=="EL YOLOMBO"]<- "YOLOMBO"
+grupos$NOMBRE[grupos$NOMBRE=="JUAN XXIII - LA QUIEBRA"]<- "JUAN XXIII LA QUIEBRA"
+grupos$NOMBRE[grupos$NOMBRE=="LA ESPERANZA  Nº 2"]<- "LA ESPERANZA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LAS LOMAS Nº 1"]<- "LAS LOMAS NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LAS LOMAS Nº 2"]<- "LAS LOMAS NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LOS BALSOS Nº 1"]<- "LOS BALSOS NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LOS BALSOS Nº 2"]<- "LOS BALSOS NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="MANRIQUE CENTRAL Nº 1"]<- "MANRIQUE CENTRAL NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="MANRIQUE CENTRAL Nº 2"]<- "MANRIQUE CENTRAL NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="MARIA CANO - CARAMBOLAS"]<- "MARIA CANO-CARAMBOLAS"
+grupos$NOMBRE[grupos$NOMBRE=="MIRA FLORES"]<- "MIRAFLORES"
+grupos$NOMBRE[grupos$NOMBRE=="MOSCU Nº 1"]<- "MOSCU NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="MOSCU Nº 2"]<- "MOSCU NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="NUEVA VILLA DE ABURRA"]<- "NUEVA VILLA DEL ABURRA"
+grupos$NOMBRE[grupos$NOMBRE=="PIEDRAS BLANCAS"]<-"PIEDRAS BLANCAS - MATASANO"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JAVIER Nº 1"]<- "SAN JAVIER NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JAVIER Nº 2"]<- "SAN JAVIER NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="SANTO DOMINGO SABIO Nº 1"]<- "SANTO DOMINGO SAVIO NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SANTO DOMINGO SABIO Nº 2"]<- "SANTO DOMINGO SAVIO NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="VERSALLES Nº 1"]<- "VERSALLES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="VERSALLES Nº 2"]<- "VERSALLES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL PLAYON DE LOS COMUNEROS"]<- "PLAYON DE LOS COMUNEROS"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES  Nº 2"]<- "CAMPO VALDES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="BARRIO FACULTAD DE MINAS"]<- "FACULTAD DE MINAS"
+grupos$NOMBRE[grupos$NOMBRE=="BERMEJAL- LOS ALAMOS"]<- "BERMEJAL-LOS ALAMOS"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA  Nº 2"]<- "BOMBONA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN ANT DE PR."]<- "SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="CERRO EL VOLADOR"]<- "B. CERRO EL VOLADOR"
+grupos$NOMBRE[grupos$NOMBRE=="CORREGIMIENTO PALMITAS"]<- "PALMITAS SECTOR CENTRAL"
+grupos$NOMBRE[grupos$NOMBRE=="VILLA TINA"]<- "VILLATINA"
+grupos$NOMBRE[grupos$NOMBRE=="VILLA LILIAM"]<- "VILLA LILLIAM"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN CRISTOBAL"]<- "CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="PROGRESO  Nº 2"]<-"PROGRESO NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECER SAN ANT DE PR "]<-"SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JOSELA CIMA NO 1"]<- "SAN JOSE LA CIMA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JOSE LA CIMA NO 2"]<- "SAN JOSE LA CIMA NO.2"
+
+
+dim(merge(x = grupos,y = Barrios_med@data,by="NOMBRE"))
+
+#################################################################################################
+
+ 
+# poner columna de colores
+
+Barrios_med@data$COLOR<-rep("white",332)
+
+for(i in 1:332){
+  for(j in 1:298){
+    if(Barrios_med@data$NOMBRE[i]==grupos$NOMBRE[j]){
+      Barrios_med@data$COLOR[i]<-grupos$COLOR[j]}}
+  }
+
+Barrios_med@data$NOMBRE
+# Barrios_med1 <- readOGR(dsn = "../Trabajo 01/Barrios de Medellín/Barrio_Vereda.shp",layer = "Barrio_Vereda")
+
+#######################################################################################################
+# creamos el mapa
+
+library(rgdal)
+library(leaflet)
+
+
+m=leaflet(Barrios_med)
+m=addTiles(m)
+m
+
+
+m=addPolygons(m,popup=Barrios_med$NOMBRE,color = Barrios_med@data$COLOR)
+m=addTiles(m) 
+m
+
+
+```
+
+
+```{r}
+##############33 Mapa para vivienda  #######################
+
+
+library(rgdal)
+library(leaflet)
+
+# leemos el archivo
+Barrios_med1=readOGR("Barrio_Vereda.shp",layer="Barrio_Vereda")
+# Mapa para la dimension Salud
+
+Barrios_med1@data$NOMBRE<- iconv(Barrios_med1@data$NOMBRE,"UTF-8","ISO_8859-1")
+Barrios_med1@data$NOMBRE <- toupper(Barrios_med1@data$NOMBRE)
+Barrios_med1@data$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",Barrios_med1@data$NOMBRE)
+
+
+# arreglo nombres de mi base de datos (SALUD)
+NOMBRE=iconv(gp$Barrio,"UTF-8","ISO_8859-1")
+print(NOMBRE)
+
+grupossalud <- cbind(NOMBRE, grupossalud[,-c(1)])
+grupossalud
+
+grupossalud$NOMBRE <- toupper(grupossalud$NOMBRE)
+grupossalud$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",grupossalud$NOMBRE)
+
+dim(merge(x = grupossalud,y = Barrios_med@data,by="NOMBRE"))
+
+grupossalud$NOMBRE[grupossalud$NOMBRE=="ALTAVISTA CENTRAL"]<- "ALTAVISTA SECTOR CENTRAL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="AREA DE EXPANCION SAN CRISTOBAL"]<- "AREA DE EXPANSION SAN CRISTOBAL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LA ESPERANZA Nº 2"]<-"LA ESPERANZA NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CARLOS E RESTREPO"]<-"CARLOS E. RESTREPO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LOS CERROS EL VERJEL"]<-"LOS CERROS EL VERGEL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CALAZANS"]<-"CALASANZ"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="AREA EXPANSION PAJARITO"]<-"AREA DE EXPANSION PAJARITO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="AREA EXPANSION SAN ANTONIO DE PRADO"]<-"AREA DE EXPANSION SAN ANTONIO DE PRADO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="YARUMALITO"]<-"YARUMALITO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LOPEZ DE MESA"]<-"LOPEZ DE MESA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="VOLCANA GUAYABAL"]<-"VOLCANA GUAYABAL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LA ASOMADERA Nº 1"]<- "ASOMADERA NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LA ASOMADERA Nº 2"]<- "ASOMADERA NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LA ASOMADERA Nº 3"]<- "ASOMADERA NO.3"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="AURES Nº 1"]<- "AURES NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="AURES Nº 2"]<- "AURES NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BARRIO CAYCEDO"]<- "BARRIO CAICEDO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BASILIA"]<- "BRASILIA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BOMBONA Nº 1"]<- "BOMBONA NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BOMBONA Nº 2"]<- "BOMBONA NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CABECERA SAN CRISTOBAL"] <-"CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CALAZANS PARTE ALTA"]<- "CALASANZ PARTE ALTA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CAMPO VALDES Nº 1"]<- "CAMPO VALDES NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CAMPO VALDES Nº 2"]<- "CAMPO VALDES NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="DESCONOCIDO"]<- "CASTILLA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="DOCE DE OCTUBRE Nº 1"]<- "DOCE DE OCTUBRE NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="DOCE DE OCTUBRE Nº 2"]<- "DOCE DE OCTUBRE NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="EL DIAMANTE Nº 2"]<- "EL DIAMANTE NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="EL NOGAL - LOS ALMENDROS"]<- "EL NOGAL-LOS ALMENDROS"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="PROGRESO"]<- "EL PROGRESO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="EL SOCORRO / LA GABRIELA"]<- "EL SOCORRO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="EL YOLOMBO"]<- "YOLOMBO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="JUAN XXIII - LA QUIEBRA"]<- "JUAN XXIII LA QUIEBRA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LA ESPERANZA  Nº 2"]<- "LA ESPERANZA NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LAS LOMAS Nº 1"]<- "LAS LOMAS NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LAS LOMAS Nº 2"]<- "LAS LOMAS NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LOS BALSOS Nº 1"]<- "LOS BALSOS NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="LOS BALSOS Nº 2"]<- "LOS BALSOS NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="MANRIQUE CENTRAL Nº 1"]<- "MANRIQUE CENTRAL NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="MANRIQUE CENTRAL Nº 2"]<- "MANRIQUE CENTRAL NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="MARIA CANO - CARAMBOLAS"]<- "MARIA CANO-CARAMBOLAS"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="MIRA FLORES"]<- "MIRAFLORES"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="MOSCU Nº 1"]<- "MOSCU NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="MOSCU Nº 2"]<- "MOSCU NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="NUEVA VILLA DE ABURRA"]<- "NUEVA VILLA DEL ABURRA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="PIEDRAS BLANCAS"]<-"PIEDRAS BLANCAS - MATASANO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="SAN JAVIER Nº 1"]<- "SAN JAVIER NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="SAN JAVIER Nº 2"]<- "SAN JAVIER NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="SANTO DOMINGO SABIO Nº 1"]<- "SANTO DOMINGO SAVIO NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="SANTO DOMINGO SABIO Nº 2"]<- "SANTO DOMINGO SAVIO NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="VERSALLES Nº 1"]<- "VERSALLES NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="VERSALLES Nº 2"]<- "VERSALLES NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="EL PLAYON DE LOS COMUNEROS"]<- "PLAYON DE LOS COMUNEROS"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CAMPO VALDES  Nº 2"]<- "CAMPO VALDES NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BARRIO FACULTAD DE MINAS"]<- "FACULTAD DE MINAS"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BERMEJAL- LOS ALAMOS"]<- "BERMEJAL-LOS ALAMOS"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="BOMBONA  Nº 2"]<- "BOMBONA NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CABECERA SAN ANT DE PR."]<- "SAN ANTONIO DE PRADO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CERRO EL VOLADOR"]<- "B. CERRO EL VOLADOR"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CORREGIMIENTO PALMITAS"]<- "PALMITAS SECTOR CENTRAL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="VILLA TINA"]<- "VILLATINA"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="VILLA LILIAM"]<- "VILLA LILLIAM"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CABECERA SAN CRISTOBAL"]<- "CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="PROGRESO  Nº 2"]<-"PROGRESO NO.2"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="CABECER SAN ANT DE PR "]<-"SAN ANTONIO DE PRADO"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="SAN JOSELA CIMA NO 1"]<- "SAN JOSE LA CIMA NO.1"
+grupossalud$NOMBRE[grupossalud$NOMBRE=="SAN JOSE LA CIMA NO 2"]<- "SAN JOSE LA CIMA NO.2"
+
+
+dim(merge(x = grupossalud,y = Barrios_med1@data,by="NOMBRE"))
+
+Barrios_med1@data$COLOR<-rep("white",332)
+
+for(i in 1:332){
+  for(j in 1:299){
+    if(Barrios_med1@data$NOMBRE[i]==grupossalud$NOMBRE[j]){
+      Barrios_med1@data$COLOR[i] <-grupossalud$COLOR[j]}}
+  }
+
+
+Barrios_med1@data$NOMBRE
+
+library(rgdal)
+library(leaflet)
+
+
+m1=leaflet(Barrios_med1)
+m1=addTiles(m1)
+m1
+
+
+m1=addPolygons(m1,popup=Barrios_med1$NOMBRE,color = Barrios_med1@data$COLOR)
+m1=addTiles(m1) 
+m1
+
+```
+
+
+
+
+
+
+
+# convertir a minusculas
+
+tolower(nombres_educacion)
+
+# convertir la primera letra en mayuscula
+
+firstup <- function(x) {
+  substr(x, 1, 1) <- toupper(substr(x, 1, 1))
+  x
+}
+
+primera <- firstup(tolower(barrios_med@data$NOMBRE))
+primera
+
+# segunda palabra primera letra en mayuscula
+
+simpleCap <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1,1)), substring(s, 2),
+      sep="", collapse=" ")
+}
+
+name <- c(primera)
+name
+segundam <- matrix(sapply(name,simpleCap),299,1)
+NOMBRE <- c(segundam)
+NOMBRE
+
+
+
+
+
+

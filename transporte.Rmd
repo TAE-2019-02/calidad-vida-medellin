@@ -1,0 +1,256 @@
+---
+title: "transporte"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load("../Trabajo 01/DATOS_CAL_VID.RData")
+vars<-c("encuesta_calidad.barrio",
+        "encuesta_calidad.p_312",
+        "encuesta_calidad.p_314",
+        "encuesta_calidad.p_315",
+        "encuesta_calidad.p_316",
+        "encuesta_calidad.p_317",
+        "encuesta_calidad.p_318",
+        "encuesta_calidad.p_319",
+        "encuesta_calidad.p_320",
+        "encuesta_calidad.p_321",
+        "encuesta_calidad.p_322")
+datos <- data[,vars]
+
+
+#estado de la contaminacion del aire
+Tabla_contaminacion <- as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_312))/
+  rowSums(as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_312)))
+
+write.csv(Tabla_contaminacion,file = "Tabla_contaminacion.csv")
+
+
+#Prorpocion del nivel de ruido por Barrio
+
+Tabla_Ruido <- as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_314))/
+  rowSums(as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_314)))
+
+write.csv(Tabla_Ruido,file = "Tabla_Ruido.csv")
+
+#epavimentacion y señalizacion de las vias
+
+Tabla_Calles <- as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_318))/
+  rowSums(as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_318)))
+
+write.csv(Tabla_Calles,file = "Tabla_Calles.csv")
+
+
+#cobertura del transporte publico
+
+Tabla_transporte<- as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_321))/
+  rowSums(as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_321)))
+
+write.csv(Tabla_transporte,file = "Tabla_Transporte.csv")
+
+
+#calidad de ese transporte publico
+
+Tabla_Calidad_transp<- as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_322))/
+  rowSums(as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_322)))
+
+write.csv(Tabla_Calidad_transp,file = "Tabla_Calidad_transp.csv")
+
+
+#estado de los andenes y separadores de calle
+
+Tabla_estado_andenes <- as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_319))/
+  rowSums(as.matrix(table(datos$encuesta_calidad.barrio,datos$encuesta_calidad.p_319)))
+
+write.csv(Tabla_estado_andenes,file = "Tabla_estado_andenes.csv")
+
+
+#----- construccion base de datos-----------
+
+Tabla_Calles <- read.csv(file = "../Dimen Trabajo/Tabla_Calles.csv",header = T,sep = ",")
+Tabla_Ruido <- read.csv(file = "../Dimen Trabajo/Tabla_Ruido.csv",header = T,sep = ",")
+Tabla_transporte <- read.csv(file = "../Dimen Trabajo/Tabla_Transporte.csv",header = T,sep = ",")
+Tabla_estado_andenes<- read.csv(file = "../Dimen Trabajo/Tabla_estado_andenes.csv",header = T,sep = ",")
+Tabla_contaminacion <- read.csv(file = "../Dimen Trabajo/Tabla_contaminacion.csv",header = T,sep = ",")
+Tabla_Calidad      <- read.csv( file= "../Dimen Trabajo/Tabla_Calidad_transp.csv",header = T,sep = ",")
+
+names(Tabla_contaminacion) <- c("Barrio","P.contaminacion.Muy_mala","P.contaminacion.Mala","P.contaminacion.Aceptable","P.contaminiancion.buena","P.contaminacion.Muy_buena")
+names(Tabla_Ruido) <-c("Barrio","P.ruido.Muy_mala","P.ruido.Mala","P.ruido.Aceptable","P.ruido.buena","P.ruido.Muy_buena")
+names(Tabla_transporte) <-c("Barrio","P.transp.Muy_mala","P.transp.Mala","P.transp.Aceptable","P.transp.buena","P.transp.Muy_buena")
+names(Tabla_Calidad)<- c("Barrio","P.Calidad.transp.Muy_mala","P.Calidad.transp.Mala","P.Calidad.transp.Aceptable","P.Calidad.transp.buena","P.Calidad.transp.Muy_buena")
+names(Tabla_Calles ) <- c("Barrio","P.calle.Muy_mala","P.calle.Mala","P.calle.Aceptable","P.calle.buena","P.calle.Muy_buena")
+names(Tabla_estado_andenes) <- c("Barrio","P.stdo.Andenes.Muy_mala","P.stdo.Andenes.Mala","P.stdo.Andenes.Aceptable","P.stdo.Andenes.buena","P.stdo.Andenes.Muy_buena")
+
+
+
+
+CALIDAD <- data.frame(Tabla_contaminacion,Tabla_Ruido[,-1],Tabla_Calidad[,-1],Tabla_transporte[,-1],
+                      Tabla_Calles[,-1],Tabla_estado_andenes[,-1])
+
+save(list = CALIDAD,file = "Dimension_transp.RData")
+write.csv(x = CALIDAD,file = "Dimension_transp.csv")
+Datos <- read.csv(file = "../Dimen Trabajo/Dimension_transp.csv",header = T,sep = ",")
+
+
+
+require(factoextra)
+fviz_nbclust(x= scale(CALIDAD[,-1]), FUNcluster = kmeans, method = "gap_stat")
+fviz_nbclust(x= scale(CALIDAD[,-1]), FUNcluster = kmeans, method = "wss")
+fviz_nbclust(x= scale(CALIDAD[,-1]), FUNcluster = kmeans, method = "silhouette")
+
+set.seed(0511)
+kmer<- kmeans(x=CALIDAD[,-1],nstart = 2, iter.max = 10, centers = 4)
+fviz_cluster(object = kmer,data = CALIDAD[,-1])
+
+grup <- cbind(CALIDAD,CLUSTER=kmer$cluster)
+
+grupos <- data.frame(NOMBRE=grup$Barrio,CLUSTER = grup$CLUSTER,COLOR = vector(length = 299))
+grupos
+
+#----------- DEFINICION DE COLORES PARA GRUPOS--------------------------------
+#
+# PRIMERO : CALIFICACION DE VARIABLES.
+require(dplyr)
+grupo_1 <- grup %>% filter(CLUSTER==1) # Muy malo / deacuerdo al promedio por variable
+grupo_2 <- grup %>% filter(CLUSTER==2) # Malo / deacuerdo al promedio por variable
+grupo_3 <- grup %>% filter(CLUSTER==3) # Muy bueno / deacuerdo al promedio por variable
+grupo_4 <- grup %>% filter(CLUSTER==4) # Bueno / deacuerdo al promedio por variable
+
+
+
+for(i in 1:nrow(grupos)){
+  if(grupos$CLUSTER[i]==1){grupos$COLOR[i]<- "red"} # muy malo
+  if(grupos$CLUSTER[i]==2){grupos$COLOR[i]<- "green"} # Malo
+  if(grupos$CLUSTER[i]==3){grupos$COLOR[i]<- "yellow"} # Muy bueno
+  if(grupos$CLUSTER[i]==4){grupos$COLOR[i]<- "orange"} # Bueno
+  }
+
+#-------------- METADATA ---------------------------------------
+
+library(rgdal)
+library(leaflet)
+Barrios_med <- readOGR(dsn = "../Trabajo 01/Barrios de Medellín/Barrio_Vereda.shp",layer = "Barrio_Vereda")
+
+Barrios_med@data$NOMBRE<- iconv(Barrios_med@data$NOMBRE,"UTF-8","ISO_8859-1")
+Barrios_med@data$NOMBRE <- toupper(Barrios_med@data$NOMBRE)
+Barrios_med@data$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",Barrios_med@data$NOMBRE)
+
+#----------------------- CORRECCION MY DATA ----------------------------
+
+grupos$NOMBRE <- toupper(grupos$NOMBRE)
+grupos$NOMBRE <- chartr("ÁÉÍÓÚ","AEIOU",grupos$NOMBRE)
+
+dim(merge(x = grupos,y = Barrios_med@data,by="NOMBRE"))
+
+#-------- CORRECCION NOMBRES DE LA BASE DE DATOS--------------
+
+#Para que sean iguales los nombres de la Metadata y nuestra data.
+
+
+grupos$NOMBRE[grupos$NOMBRE=="ALTAVISTA CENTRAL"]<- "ALTAVISTA SECTOR CENTRAL"
+grupos$NOMBRE[grupos$NOMBRE=="AREA DE EXPANCION SAN CRISTOBAL"]<- "AREA DE EXPANSION SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="LA ESPERANZA Nº 2"]<-"LA ESPERANZA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CARLOS E RESTREPO"]<-"CARLOS E. RESTREPO"
+grupos$NOMBRE[grupos$NOMBRE=="LOS CERROS EL VERJEL"]<-"LOS CERROS EL VERGEL"
+grupos$NOMBRE[grupos$NOMBRE=="CALAZANS"]<-"CALASANZ"
+grupos$NOMBRE[grupos$NOMBRE=="AREA EXPANSION PAJARITO"]<-"AREA DE EXPANSION PAJARITO"
+grupos$NOMBRE[grupos$NOMBRE=="AREA EXPANSION SAN ANTONIO DE PRADO"]<-"AREA DE EXPANSION SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="YARUMALITO"]<-"YARUMALITO"
+grupos$NOMBRE[grupos$NOMBRE=="LOPEZ DE MESA"]<-"LOPEZ DE MESA"
+grupos$NOMBRE[grupos$NOMBRE=="VOLCANA GUAYABAL"]<-"VOLCANA GUAYABAL"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 1"]<- "ASOMADERA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 2"]<- "ASOMADERA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LA ASOMADERA Nº 3"]<- "ASOMADERA NO.3"
+grupos$NOMBRE[grupos$NOMBRE=="AURES Nº 1"]<- "AURES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="AURES Nº 2"]<- "AURES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="BARRIO CAYCEDO"]<- "BARRIO CAICEDO"
+grupos$NOMBRE[grupos$NOMBRE=="BASILIA"]<- "BRASILIA"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA Nº 1"]<- "BOMBONA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA Nº 2"]<- "BOMBONA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN CRISTOBAL"] <-"CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="CALAZANS PARTE ALTA"]<- "CALASANZ PARTE ALTA"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES Nº 1"]<- "CAMPO VALDES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES Nº 2"]<- "CAMPO VALDES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="DESCONOCIDO"]<- "CASTILLA"
+grupos$NOMBRE[grupos$NOMBRE=="DOCE DE OCTUBRE Nº 1"]<- "DOCE DE OCTUBRE NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="DOCE DE OCTUBRE Nº 2"]<- "DOCE DE OCTUBRE NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL DIAMANTE Nº 2"]<- "EL DIAMANTE NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL NOGAL - LOS ALMENDROS"]<- "EL NOGAL-LOS ALMENDROS"
+grupos$NOMBRE[grupos$NOMBRE=="PROGRESO"]<- "EL PROGRESO"
+grupos$NOMBRE[grupos$NOMBRE=="EL SOCORRO / LA GABRIELA"]<- "EL SOCORRO"
+grupos$NOMBRE[grupos$NOMBRE=="EL YOLOMBO"]<- "YOLOMBO"
+grupos$NOMBRE[grupos$NOMBRE=="JUAN XXIII - LA QUIEBRA"]<- "JUAN XXIII LA QUIEBRA"
+grupos$NOMBRE[grupos$NOMBRE=="LA ESPERANZA  Nº 2"]<- "LA ESPERANZA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LAS LOMAS Nº 1"]<- "LAS LOMAS NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LAS LOMAS Nº 2"]<- "LAS LOMAS NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="LOS BALSOS Nº 1"]<- "LOS BALSOS NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="LOS BALSOS Nº 2"]<- "LOS BALSOS NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="MANRIQUE CENTRAL Nº 1"]<- "MANRIQUE CENTRAL NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="MANRIQUE CENTRAL Nº 2"]<- "MANRIQUE CENTRAL NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="MARIA CANO - CARAMBOLAS"]<- "MARIA CANO-CARAMBOLAS"
+grupos$NOMBRE[grupos$NOMBRE=="MIRA FLORES"]<- "MIRAFLORES"
+grupos$NOMBRE[grupos$NOMBRE=="MOSCU Nº 1"]<- "MOSCU NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="MOSCU Nº 2"]<- "MOSCU NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="NUEVA VILLA DE ABURRA"]<- "NUEVA VILLA DEL ABURRA"
+grupos$NOMBRE[grupos$NOMBRE=="PIEDRAS BLANCAS"]<-"PIEDRAS BLANCAS - MATASANO"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JAVIER Nº 1"]<- "SAN JAVIER NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JAVIER Nº 2"]<- "SAN JAVIER NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="SANTO DOMINGO SABIO Nº 1"]<- "SANTO DOMINGO SAVIO NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SANTO DOMINGO SABIO Nº 2"]<- "SANTO DOMINGO SAVIO NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="VERSALLES Nº 1"]<- "VERSALLES NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="VERSALLES Nº 2"]<- "VERSALLES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="EL PLAYON DE LOS COMUNEROS"]<- "PLAYON DE LOS COMUNEROS"
+grupos$NOMBRE[grupos$NOMBRE=="CAMPO VALDES  Nº 2"]<- "CAMPO VALDES NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="BARRIO FACULTAD DE MINAS"]<- "FACULTAD DE MINAS"
+grupos$NOMBRE[grupos$NOMBRE=="BERMEJAL- LOS ALAMOS"]<- "BERMEJAL-LOS ALAMOS"
+grupos$NOMBRE[grupos$NOMBRE=="BOMBONA  Nº 2"]<- "BOMBONA NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN ANT DE PR."]<- "SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="CERRO EL VOLADOR"]<- "B. CERRO EL VOLADOR"
+grupos$NOMBRE[grupos$NOMBRE=="CORREGIMIENTO PALMITAS"]<- "PALMITAS SECTOR CENTRAL"
+grupos$NOMBRE[grupos$NOMBRE=="VILLA TINA"]<- "VILLATINA"
+grupos$NOMBRE[grupos$NOMBRE=="VILLA LILIAM"]<- "VILLA LILLIAM"
+grupos$NOMBRE[grupos$NOMBRE=="CABECERA SAN CRISTOBAL"]<- "CABECERA URBANA CORREGIMIENTO SAN CRISTOBAL"
+grupos$NOMBRE[grupos$NOMBRE=="PROGRESO  Nº 2"]<-"PROGRESO NO.2"
+grupos$NOMBRE[grupos$NOMBRE=="CABECER SAN ANT DE PR "]<-"SAN ANTONIO DE PRADO"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JOSELA CIMA NO 1"]<- "SAN JOSE LA CIMA NO.1"
+grupos$NOMBRE[grupos$NOMBRE=="SAN JOSE LA CIMA NO 2"]<- "SAN JOSE LA CIMA NO.2"
+
+
+dim(merge(x = grupos,y = Barrios_med@data,by="NOMBRE"))
+
+
+#------- LOGRAR COMO PONER UNA COLUMNA DE COLORES EN LA METADATA------------------
+
+
+Barrios_med@data$COLOR<-rep("white",332)
+
+for(i in 1:332){
+  for(j in 1:299){
+    if(Barrios_med@data$NOMBRE[i]==grupos$NOMBRE[j]){
+      Barrios_med@data$COLOR[i]<-grupos$COLOR[j]}}
+}
+
+
+
+
+
+#------------------------- CREACION DEL MAPA ---------------------
+library(rgdal)
+library(leaflet)
+
+
+m=leaflet(Barrios_med)
+m=addTiles(m)
+m
+
+
+m=addPolygons(m,popup=Barrios_med$NOMBRE,color = Barrios_med@data$COLOR)
+m=addTiles(m)
+m
+
+```
+
